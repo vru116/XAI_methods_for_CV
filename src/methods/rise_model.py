@@ -133,10 +133,8 @@ class RISE(nn.Module):
         N = self.N
         _, _, H, W = x.size()
 
-        # print(self.masks.shape)
-        # print(x.data.shape)
-        # torch.Size([600, 1, 224, 224])
-        # torch.Size([1, 3, 224, 224])
+        # print(self.masks.shape) # (N, 1, H, W)
+        # print(x.data.shape) # (B, C, H, W)
         stack = torch.mul(self.masks, x.data)
 
         p = []

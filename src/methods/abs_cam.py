@@ -38,7 +38,6 @@ class AbsCAMInit:
         score.backward()
 
         gradients = self.gradients
-        # print(gradients.shape)
         activations = self.activations
 
         # B, C, H, W = gradients.shape
@@ -50,12 +49,10 @@ class AbsCAMInit:
         # print(weighted_activations.shape)
         cam = weighted_activations.sum(dim=1, keepdim=True)  # shape: (B, 1, H, W)
 
-        # cam = F.relu(cam)
         cam = F.interpolate(cam, size=(input_tensor.shape[2], input_tensor.shape[3]), mode='bilinear', align_corners=False)
 
         cam = cam - cam.min()
         cam = cam / (cam.max() + 1e-8)
-        # print(f"cam {cam.shape}")
         return cam.detach().squeeze().cpu().numpy()
 
 
@@ -106,7 +103,6 @@ class AbsCAMFinal:
         weighted_activations = weights * activations  # shape: (B, C, H, W)
         # print(weighted_activations.shape)
         M0_k = weighted_activations
-        # M0_k = F.relu(M0_k)
 
         M0_k = F.interpolate(M0_k, size=(input_tensor.shape[2], input_tensor.shape[3]), mode='bilinear', align_corners=False)
 
@@ -121,15 +117,17 @@ class AbsCAMFinal:
 
         with torch.no_grad():
             y_M1 = self.model(M1_k)  # (B*C, num_classes)
-            # y_M1 = torch.softmax(y_M1, dim=1)
+            y_M1 = torch.softmax(y_M1, dim=1)
             y_c = y_M1[:, class_idx]  # (B*C,)
 
         y_c = y_c.view(B, C, 1, 1)
-        y_c = y_c.abs()
+        # print(y_c.shape)
+        # y_c = y_c.abs()
 
         # print("M0_k:", M0_k.min().item(), M0_k.max().item(), M0_k.mean().item())
         # print("y_c:", y_c.min().item(), y_c.max().item(), y_c.mean().item())
         # print("(y_c * M0_k).sum:", ((y_c * M0_k).sum(dim=1)).min().item(), ((y_c * M0_k).sum(dim=1)).max().item())
 
         Lc = F.relu((y_c * M0_k).sum(dim=1))
+        # Lc = (y_c * M0_k).sum(dim=1)
         return Lc.squeeze().cpu().detach().numpy()
